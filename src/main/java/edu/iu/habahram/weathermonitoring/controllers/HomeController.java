@@ -31,8 +31,4 @@ public class HomeController {
                 .status(HttpStatus.FOUND)
                 .body(html);
     }
-
-
-
-
 }

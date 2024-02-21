@@ -8,6 +8,9 @@ public class CurrentConditionDisplay
     private float temperature;
     private float humidity;
     private float pressure;
+    private float maxTemp;
+    private float avgTemp;
+    private float minTemp;
 
     private Subject weatherData;
 
@@ -44,10 +47,13 @@ public class CurrentConditionDisplay
     }
 
     @Override
-    public void update(float temperature, float humidity, float pressure) {
+    public void update(float temperature, float humidity, float pressure, float maxTemp,float minTemp, float avgTemp) {
          this.temperature = temperature;
          this.humidity = humidity;
          this.pressure = pressure;
+         this.avgTemp = avgTemp;
+         this.maxTemp = maxTemp;
+         this.minTemp = minTemp;
     }
 
     public void subscribe() {

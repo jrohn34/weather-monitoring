@@ -1,83 +1,86 @@
 package edu.iu.habahram.weathermonitoring.controllers;
 
 import edu.iu.habahram.weathermonitoring.model.CurrentConditionDisplay;
-import edu.iu.habahram.weathermonitoring.model.ForecastDisplay;
 import edu.iu.habahram.weathermonitoring.model.Observer;
 import edu.iu.habahram.weathermonitoring.model.StatisticsDisplay;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import edu.iu.habahram.weathermonitoring.model.ForecastDisplay;
+import edu.iu.habahram.weathermonitoring.model.WeatherData;
 
 @RestController
 @RequestMapping("/displays")
 public class DisplayController {
-    private CurrentConditionDisplay currentConditionDisplay;
+    private final CurrentConditionDisplay currentConditionDisplay;
+    private final StatisticsDisplay statisticsDisplay;
+    private final WeatherData weatherData;
+    private final ForecastDisplay forecastDisplay;
 
-    public DisplayController(CurrentConditionDisplay currentConditionDisplay
-                             ) {
+    public DisplayController(CurrentConditionDisplay currentConditionDisplay, StatisticsDisplay statisticsDisplay, WeatherData weatherData, ForecastDisplay forecastDisplay) {
         this.currentConditionDisplay = currentConditionDisplay;
+        this.statisticsDisplay = statisticsDisplay;
+        this.weatherData = weatherData;
+        this.forecastDisplay = forecastDisplay;
     }
 
     @GetMapping
-    public ResponseEntity index() {
-        String html =
-                String.format("<h1>Available screens:</h1>");
-        html += "<ul>";
-        html += "<li>";
-        html += String.format("<a href=/displays/%s>%s</a>", currentConditionDisplay.id(), currentConditionDisplay.name());
-        html += "</li>";
-
-        html += "</ul>";
-        return ResponseEntity
-                .status(HttpStatus.FOUND)
-                .body(html);
+    public ResponseEntity<String> index() {
+        StringBuilder html = new StringBuilder("<h1>Available screens:</h1><ul>");
+        html.append("<li>").append(String.format("<a href=\"/displays/%s\">%s</a>", currentConditionDisplay.id(), currentConditionDisplay.name())).append("</li>");
+        html.append("<li>").append(String.format("<a href=\"/displays/%s\">%s</a>", statisticsDisplay.id(), statisticsDisplay.name())).append("</li>");
+        html.append("</ul>");
+        return ResponseEntity.ok(html.toString());
     }
 
-
     @GetMapping("/{id}")
-    public ResponseEntity display(@PathVariable String id) {
-        String html = "";
-        HttpStatus status = HttpStatus.NOT_FOUND;
+    public ResponseEntity<String> display(@PathVariable String id) {
+        Observer display = null;
         if (id.equalsIgnoreCase(currentConditionDisplay.id())) {
-            html = currentConditionDisplay.display();
-            status = HttpStatus.FOUND;
+            display = currentConditionDisplay;
+        } else if (id.equalsIgnoreCase(statisticsDisplay.id())) {
+            display = statisticsDisplay;
         }
-        return ResponseEntity
-                .status(status)
-                .body(html);
+        if (display != null) {
+            return ResponseEntity.ok(display.display());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/{id}/subscribe")
-    public ResponseEntity subscribe(@PathVariable String id) {
-        String html = "";
-        HttpStatus status = null;
-        if (id.equalsIgnoreCase(currentConditionDisplay.id())) {
-            currentConditionDisplay.subscribe();
-            html = "Subscribed!";
-            status = HttpStatus.FOUND;
+    public ResponseEntity<String> subscribe(@PathVariable String id) {
+        Observer display = getDisplayById(id);
+        if (display != null) {
+            display.subscribe();
+            weatherData.registerObserver(display);
+            return ResponseEntity.ok("Subscribed!");
         } else {
-            html = "The screen id is invalid.";
-            status = HttpStatus.NOT_FOUND;
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity
-                .status(status)
-                .body(html);
     }
-
+    
     @GetMapping("/{id}/unsubscribe")
-    public ResponseEntity unsubscribe(@PathVariable String id) {
-        String html = "";
-        HttpStatus status = null;
-        if (id.equalsIgnoreCase(currentConditionDisplay.id())) {
-            currentConditionDisplay.unsubscribe();
-            html = "Unsubscribed!";
-            status = HttpStatus.FOUND;
+    public ResponseEntity<String> unsubscribe(@PathVariable String id) {
+        Observer display = getDisplayById(id);
+        if (display != null) {
+            display.unsubscribe();
+            weatherData.removeObserver(display);
+            return ResponseEntity.ok("Unsubscribed!");
         } else {
-            html = "The screen id is invalid.";
-            status = HttpStatus.NOT_FOUND;
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity
-                .status(status)
-                .body(html);
+    }
+    
+    private Observer getDisplayById(String id) {
+        switch (id) {
+            case "current-condition":
+                return currentConditionDisplay;
+            case "statistics-display":
+                return statisticsDisplay;
+            case "forecast-display":
+                return forecastDisplay;
+            default:
+                return null;
+        }
     }
 }
